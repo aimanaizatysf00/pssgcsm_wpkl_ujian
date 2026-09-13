@@ -831,8 +831,8 @@
         });
         const data = await res.json();
         
-        // JIKA ADMIN TEKAN RESET: Padam localStorage dan kembali ke Skrin Utama (Langkah 1)
-        if (data.forceReset || data.status === 'RESET_REQUESTED') {
+        // PAKSA RESET SEGERA APABILA ADMIN TEKAN RESET
+        if (data.forceReset || data.status === 'RESET_REQUESTED' || data.reset === true) {
           localStorage.removeItem('SILAT_DRAFT_SESSION');
           document.getElementById('namaPenguji').value = '';
           document.getElementById('pilihTaliPinggang').value = '';
@@ -841,18 +841,6 @@
           CURRENT_SHEET_TITLE = "";
           tunjukLangkah(1, false);
           return;
-        }
-
-        if (data.draftData && data.draftData.pesilat && data.draftData.pesilat.length > 0 && !CURRENT_SHEET_TITLE) {
-          const draftPindahan = {
-            langkah: 3,
-            penguji: data.draftData.namaPenguji || data.draftData.penguji || '',
-            tp: data.draftData.peringkat,
-            kump: data.draftData.kumpulan,
-            pesilat: data.draftData.pesilat,
-            sheetTitle: data.draftData.sheetTitle || ""
-          };
-          muatTerusSesiDraf(draftPindahan);
         }
       } catch (e) {}
     }
