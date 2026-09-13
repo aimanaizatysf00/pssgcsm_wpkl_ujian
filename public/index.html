@@ -763,7 +763,21 @@
       const draft = DRAF_TERSIMPAM_DATA;
 
       document.getElementById('namaPenguji').value = draft.penguji || '';
-      if (draft.tp) document.getElementById('pilihTaliPinggang').value = draft.tp;
+      
+      // AUTO SET TALI PINGGANG SEBENTAR (SEBATI NAMA DARI PERANTI A)
+      if (draft.tp) {
+        const selectTp = document.getElementById('pilihTaliPinggang');
+        selectTp.value = draft.tp;
+        
+        if (selectTp.value !== draft.tp) {
+          const opt = document.createElement('option');
+          opt.value = draft.tp;
+          opt.textContent = draft.tp;
+          selectTp.appendChild(opt);
+          selectTp.value = draft.tp;
+        }
+      }
+
       if (draft.kump) document.getElementById('kumpulanUjian').value = draft.kump;
       
       if (draft.pesilat) PESILAT_TERPILIH = draft.pesilat;
