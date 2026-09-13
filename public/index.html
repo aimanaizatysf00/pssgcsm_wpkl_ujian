@@ -770,7 +770,6 @@
     
       const kriteriaObj = DB_TETAPAN[selectTp.value] || DB_TETAPAN[draft.tp] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
       
-      // Jika berada di langkah 3 atau mempunyai sheet aktif, terus paparkan langkah 3 secara automatik
       if (draft.langkah === 3 || CURRENT_SHEET_TITLE) {
         binaBorangMarkah(kriteriaObj);
         tunjukLangkah(3, false);
@@ -832,6 +831,7 @@
         });
         const data = await res.json();
         
+        // JIKA ADMIN TEKAN RESET: Padam localStorage dan kembali ke Skrin Utama (Langkah 1)
         if (data.forceReset || data.status === 'RESET_REQUESTED') {
           localStorage.removeItem('SILAT_DRAFT_SESSION');
           document.getElementById('namaPenguji').value = '';
@@ -840,6 +840,7 @@
           PESILAT_TERPILIH = [];
           CURRENT_SHEET_TITLE = "";
           tunjukLangkah(1, false);
+          return;
         }
 
         if (data.draftData && data.draftData.pesilat && data.draftData.pesilat.length > 0 && !CURRENT_SHEET_TITLE) {
