@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Urus Setia - Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 text-gray-800">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+    
+    <!-- TAJUK DOKUMEN -->
+    <div class="bg-slate-800 text-white p-6 rounded-xl shadow-md flex justify-between items-center flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl font-bold">DASHBOARD URUS SETIA</h1>
+        <p class="text-xs text-slate-300">Pemantauan Aktiviti Penguji & Kawalan Sesi Ujian</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="muatLogAdmin()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-semibold border border-slate-500 flex items-center gap-1 transition">
+          🔄 Refresh Data
+        </button>
+        <button onclick="resetSemuaSesi()" class="bg-amber-600 hover:bg-amber-700 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 transition text-white font-bold">
+          ⚠️ Reset Semua Sesi
+        </button>
+        <button onclick="padamSemuaLog()" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded text-xs font-semibold flex items-center gap-1 transition text-white font-bold">
+          🗑️ Padam Semua Log
+        </button>
+      </div>
+    </div>
+
+    <!-- BORANG HANTAR PENGUMUMAN / NOTIFIKASI -->
+    <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-amber-500 space-y-3">
+      <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+        <span>📢</span> Hantar Pengumuman Pop-Up Ke Penguji
+      </h2>
+      <div class="flex gap-2">
+        <input type="text" id="mesejNotif" placeholder="Tulis mesej pengumuman di sini..." class="w-full border p-2 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm">
+        <button onclick="hantarNotif()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded text-sm transition whitespace-nowrap">
+          Hantar
+        </button>
+      </div>
+    </div>
+
+    <!-- SEKSYEN PESILAT TERBAIK (STAR) -->
+    <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <span>⭐</span> Pesilat Terbaik Pilihan Penguji
+        </h2>
+        <span class="text-xs text-gray-500">Disusun mengikut Tali Pinggang & Kumpulan</span>
+      </div>
+      <div id="senaraiPesilatTerbaikContainer" class="space-y-6">
+        <div class="text-sm text-gray-500 italic p-2">Memuatkan senarai pesilat terbaik...</div>
+      </div>
+    </div>
+
+    <!-- JADUAL LOG PERANTI PENGUJI -->
+    <div class="bg-white p-6 rounded-xl shadow-md space-y-4">
+      <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-3">
+        <h2 class="text-lg font-bold text-gray-800">📱 Log & Status Telefon Penguji (Real-Time)</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-400 ml-1 hidden md:inline">| Dikemaskini setiap 5s</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead class="bg-slate-100 text-slate-700">
+            <tr>
+              <th class="p-3 border">ID Peranti</th>
+              <th class="p-3 border">Penguji</th>
+              <th class="p-3 border">Lokasi / Peringkat</th>
+              <th class="p-3 border">Senarai Pesilat</th>
+              <th class="p-3 border">Data (Pilih Sheet)</th>
+              <th class="p-3 border">Kemaskini Terakhir</th>
+              <th class="p-3 border text-center">Tindakan</th>
+            </tr>
+          </thead>
+          <tbody id="jadualLog">
+            <tr>
+              <td colspan="7" class="p-4 text-center text-gray-500">Memuatkan data peranti...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyY4glykN1H9O9OhLBbaR2PB4a8E0n_BDf7W6tTODLPq23JPJBj4SoYELYhtPodzYU9mg/exec"; 
+    let globalSheetList = [];
+
+    window.onload = function() {
+      muatLogAdmin();
+      setInterval(muatLogAdmin, 5000);
+    };
+
+    async function muatLogAdmin() {
+      try {
+        const res = await fetch(APPS_SCRIPT_URL + "?action=getAdminLogs");
+        const data = await res.json();
+        
+        if (data.success) {
+          globalSheetList = data.sheetList || [];
+          if (data.logs) {
+            paparLog(data.logs);
+            paparPesilatTerbaik(data.logs);
+          }
+        }
+      } catch (e) {
+        console.error("Gagal muat log admin", e);
+      }
+    }
+
+    function rawatSenaraiPesilat(pesilatData) {
+      let listPesilat = [];
+      if (pesilatData) {
+        if (Array.isArray(pesilatData)) {
+          listPesilat = pesilatData;
+        } else if (typeof pesilatData === 'string' && pesilatData.trim() !== '-' && pesilatData.trim() !== '') {
+          try {
+            const parsed = JSON.parse(pesilatData);
+            if (Array.isArray(parsed)) {
+              listPesilat = parsed;
+            } else if (typeof parsed === 'object') {
+              listPesilat = [parsed];
+            }
+          } catch(e) {
+            listPesilat = pesilatData.split(',').map(s => ({ nama: s.trim() }));
+          }
+        } else if (typeof pesilatData === 'object' && pesilatData !== null) {
+          listPesilat = [pesilatData];
+        }
+      }
+      return listPesilat;
+    }
+
+    function paparPesilatTerbaik(logsObj) {
+      const container = document.getElementById('senaraiPesilatTerbaikContainer');
+      const keys = Object.keys(logsObj);
+      
+      let groupedData = {};
+      let adaPesilatStar = false;
+
+      keys.forEach(devId => {
+        const item = logsObj[devId];
+        const peringkat = item.peringkat || 'Lain-lain';
+        const namaPenguji = item.penguji || 'Tanpa Nama';
+        const kumpulan = item.kumpulan || 'Kumpulan Utama';
+        let listPesilat = rawatSenaraiPesilat(item.pesilat);
+
+        listPesilat.forEach(p => {
+          if (p && typeof p === 'object' && (p.starred === true || p.starred === 'true' || p.starred == 1)) {
+            adaPesilatStar = true;
+            
+            if (!groupedData[peringkat]) {
+              groupedData[peringkat] = {};
+            }
+            if (!groupedData[peringkat][kumpulan]) {
+              groupedData[peringkat][kumpulan] = {
+                penguji: namaPenguji,
+                pesilatList: []
+              };
+            }
+            
+            groupedData[peringkat][kumpulan].pesilatList.push({
+              nama: p.nama || '-',
+              ic: p.ic || '-',
+              gelanggang: p.gelanggang || kumpulan,
+              jumlah: p.jumlah !== undefined ? p.jumlah : '-'
+            });
+          }
+        });
+      });
+
+      if (!adaPesilatStar) {
+        container.innerHTML = `<div class="text-center text-sm text-gray-400 italic py-4">Tiada pesilat ditandakan sebagai cemerlang (star) setakat ini.</div>`;
+        return;
+      }
+
+      let htmlContent = "";
+      Object.keys(groupedData).forEach(peringkat => {
+        htmlContent += `
+          <div class="space-y-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <h3 class="text-md font-extrabold text-amber-800 uppercase tracking-wide border-b border-amber-200 pb-2">
+              🥋 ${peringkat}
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        `;
+
+        Object.keys(groupedData[peringkat]).forEach(kump => {
+          const kumpData = groupedData[peringkat][kump];
+          let namaKumpulanLabel = kump.toLowerCase().includes('kumpulan') ? kump : `Kumpulan ${kump}`;
+
+          htmlContent += `
+            <div class="bg-white border-2 border-amber-300 rounded-xl p-4 shadow-sm space-y-3 relative">
+              <div class="absolute top-3 right-3 text-xl">⭐</div>
+              <div class="font-bold text-slate-800 text-sm">
+                ${namaKumpulanLabel} (${kumpData.penguji})
+              </div>
+              <div class="space-y-3 border-t border-amber-100 pt-2">
+          `;
+
+          kumpData.pesilatList.forEach(p => {
+            htmlContent += `
+              <div class="bg-amber-50/60 p-2.5 rounded-lg border border-amber-200/60 text-xs space-y-1">
+                <div><b>Nama Pesilat:</b> <span class="text-gray-900 font-semibold">${p.nama}</span></div>
+                <div><b>IC:</b> ${p.ic}</div>
+                <div><b>Gelanggang:</b> ${p.gelanggang}</div>
+                <div><b>Jumlah Markah:</b> <span class="font-bold text-amber-600">${p.jumlah}</span></div>
+              </div>
+            `;
+          });
+
+          htmlContent += `</div></div>`;
+        });
+
+        htmlContent += `</div></div>`;
+      });
+
+      container.innerHTML = htmlContent;
+    }
+
+    function paparLog(logsObj) {
+      const tbody = document.getElementById('jadualLog');
+      const keys = Object.keys(logsObj);
+
+      if (keys.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">Tiada aktiviti peranti direkodkan lagi.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = keys.map(devId => {
+        const item = logsObj[devId];
+        const isReset = item.status === 'RESET_REQUESTED';
+
+        let listPesilatObj = rawatSenaraiPesilat(item.pesilat);
+        let listNama = listPesilatObj.map(p => {
+          if (typeof p === 'object' && p !== null) {
+            const isStarred = p.starred === true || p.starred === 'true' || p.starred == 1;
+            return (p.nama || '-') + (isStarred ? ' ⭐' : '');
+          }
+          return String(p);
+        });
+        listNama = listNama.filter(p => p && p !== '-' && p !== 'null' && p !== 'undefined');
+
+        let htmlPesilat = `<span class="text-gray-400 italic text-xs">- Tiada Pesilat -</span>`;
+        if (listNama.length > 0) {
+          htmlPesilat = `
+            <div class="max-h-32 overflow-y-auto space-y-1 p-1.5 bg-gray-50 rounded border border-gray-200 text-xs min-w-[180px]">
+              ${listNama.map((nama, idx) => `
+                <div class="truncate text-slate-700 font-medium border-b border-gray-200 last:border-0 pb-0.5">
+                  ${idx + 1}. ${nama}
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        let dropdownOptions = `<option value="">-- Pilih Sheet --</option>`;
+        globalSheetList.forEach(sName => {
+          let selected = (item.sheetTitle === sName) ? "selected" : "";
+          dropdownOptions += `<option value="${sName}" ${selected}>${sName}</option>`;
+        });
+
+        return `
+          <tr class="border-b hover:bg-slate-50">
+            <td class="p-3 border font-mono text-xs text-slate-600 align-top">${devId}</td>
+            <td class="p-3 border font-bold text-gray-800 align-top">${item.penguji || '-'}</td>
+            <td class="p-3 border align-top">
+              <span class="px-2 py-1 rounded text-xs font-semibold inline-block ${isReset ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-800'}">
+                ${item.peringkat || '-'}
+              </span>
+            </td>
+            <td class="p-3 border align-top max-w-xs">${htmlPesilat}</td>
+            <td class="p-3 border align-top">
+              <div class="flex flex-col gap-1.5">
+                <select id="sheetSelect_${devId}" class="border border-gray-300 rounded p-1 text-xs bg-white focus:ring-1 focus:ring-blue-500">
+                  ${dropdownOptions}
+                </select>
+                <button onclick="simpanSheetPeranti('${devId}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-bold transition">
+                  💾 Tetapkan Sheet
+                </button>
+              </div>
+            </td>
+            <td class="p-3 border text-xs text-gray-500 align-top">${item.lastUpdate || '-'}</td>
+            <td class="p-3 border text-center align-top">
+              <div class="flex flex-col gap-1.5 items-center justify-center w-full">
+                <button onclick="resetSesiPeranti('${devId}')" class="bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded text-xs font-bold transition w-full" title="Reset Sesi Peranti">
+                  Reset
+                </button>
+                <button onclick="padamLogPeranti('${devId}')" class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs font-bold transition w-full" title="Padam Log Peranti Ini">
+                  🗑️ Padam
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function simpanSheetPeranti(devId) {
+      const selectEl = document.getElementById(`sheetSelect_${devId}`);
+      const chosenSheet = selectEl ? selectEl.value : "";
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ 
+            action: 'updateDeviceSheet', 
+            deviceId: devId, 
+            sheetTitle: chosenSheet 
+          })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert("✅ Sheet & data peranti berjaya dikemaskini!");
+          muatLogAdmin();
+        } else {
+          alert("Gagal: " + result.message);
+        }
+      } catch(e) {
+        alert("Ralat semasa menetapkan sheet.");
+      }
+    }
+
+    async function hantarNotif() {
+      const mesej = document.getElementById('mesejNotif').value.trim();
+      if (!mesej) return alert("Sila masukkan mesej.");
+      const uniqueNotifId = "NOTIF_" + Date.now();
+
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'sendNotif', message: mesej, id: uniqueNotifId })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert("✅ Pengumuman berjaya dihantar.");
+          document.getElementById('mesejNotif').value = "";
+        }
+      } catch(e) {
+        alert("Gagal menghantar notifikasi.");
+      }
+    }
+
+    async function resetSesiPeranti(devId) {
+      if (!confirm(`Pasti mahu mereset sesi peranti [${devId}]?`)) return;
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'resetDevice', deviceId: devId, resetType: 'session' })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert("✅ Arahan reset dihantar.");
+          muatLogAdmin();
+        }
+      } catch(e) {
+        alert("Gagal mereset peranti.");
+      }
+    }
+
+    async function padamLogPeranti(devId) {
+      if (!confirm(`Adakah anda pasti mahu memadam log peranti [${devId}]?`)) return;
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'deleteDeviceLog', deviceId: devId })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert("✅ Log peranti berjaya dipadam.");
+          muatLogAdmin();
+        } else {
+          alert("Gagal: " + result.message);
+        }
+      } catch(e) {
+        alert("Ralat semasa memadam log.");
+      }
+    }
+
+    // Fungsi Baru: Reset Semua Sesi Peranti Sekaligus
+    async function resetSemuaSesi() {
+      if (!confirm("⚠️ AMARAN: Pastikan anda mahu MERESET SEMUA sesi peranti yang bersambung sekarang?")) return;
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'resetAllDevices' })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert("✅ Semua sesi peranti berjaya di-reset.");
+          muatLogAdmin();
+        } else {
+          alert("Gagal: " + (result.message || "Ralat tidak diketahui"));
+        }
+      } catch(e) {
+        alert("Ralat semasa mereset semua sesi.");
+      }
+    }
+
+    // Fungsi Baru: Padam Semua Log Peranti Sekaligus
+    async function padamSemuaLog() {
+      if (!confirm("🗑️ AMARAN: Adakah anda pasti mahu MEMADAM SEMUA LOG peranti daripada sistem? Tindakan ini tidak boleh undur.")) return;
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'deleteAllDeviceLogs' })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert("✅ Semua log peranti berjaya dipadam.");
+          muatLogAdmin();
+        } else {
+          alert("Gagal: " + (result.message || "Ralat tidak diketahui"));
+        }
+      } catch(e) {
+        alert("Ralat semasa memadam semua log.");
+      }
+    }
+  </script>
+</body>
+</html>
