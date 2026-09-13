@@ -60,7 +60,7 @@
       <div class="flex justify-between items-center border-b pb-3 flex-wrap gap-3">
         <h2 class="text-lg font-bold text-gray-800">📱 Log & Status Telefon Penguji (Real-Time)</h2>
         <div class="flex items-center gap-2">
-          <span class="text-xs text-gray-400 ml-1 hidden md:inline">| Dikemaskini setiap 5s</span>
+          <span class="text-xs text-gray-400 ml-1 hidden md:inline">| Dikemaskini setiap 1 minit</span>
         </div>
       </div>
 
@@ -69,17 +69,16 @@
           <thead class="bg-slate-100 text-slate-700">
             <tr>
               <th class="p-3 border">ID Peranti</th>
-              <th class="p-3 border">Penguji</th>
-              <th class="p-3 border">Lokasi / Peringkat</th>
+              <th class="p-3 border">Nama Penguji</th>
+              <th class="p-3 border">Tali Pinggang Diuji</th>
               <th class="p-3 border">Senarai Pesilat</th>
-              <th class="p-3 border">Data (Pilih Sheet)</th>
               <th class="p-3 border">Kemaskini Terakhir</th>
               <th class="p-3 border text-center">Tindakan</th>
             </tr>
           </thead>
           <tbody id="jadualLog">
             <tr>
-              <td colspan="7" class="p-4 text-center text-gray-500">Memuatkan data peranti...</td>
+              <td colspan="6" class="p-4 text-center text-gray-500">Memuatkan data peranti...</td>
             </tr>
           </tbody>
         </table>
@@ -90,11 +89,10 @@
 
   <script>
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDKO9CgEtPCEMc3NyVp_kfE87LE15pzGoocOi4c9rx6pLhseLZXBT6QnmBkIEJKR3WUw/exec"; 
-    let globalSheetList = [];
 
     window.onload = function() {
       muatLogAdmin();
-      setInterval(muatLogAdmin, 5000);
+      setInterval(muatLogAdmin, 60000);
     };
 
     async function muatLogAdmin() {
@@ -103,7 +101,6 @@
         const data = await res.json();
         
         if (data.success) {
-          globalSheetList = data.sheetList || [];
           if (data.logs) {
             paparLog(data.logs);
             paparPesilatTerbaik(data.logs);
@@ -228,7 +225,7 @@
       const keys = Object.keys(logsObj);
 
       if (keys.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">Tiada aktiviti peranti direkodkan lagi.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">Tiada aktiviti peranti direkodkan lagi.</td></tr>`;
         return;
       }
 
@@ -259,12 +256,6 @@
           `;
         }
 
-        let dropdownOptions = `<option value="">-- Pilih Sheet --</option>`;
-        globalSheetList.forEach(sName => {
-          let selected = (item.sheetTitle === sName) ? "selected" : "";
-          dropdownOptions += `<option value="${sName}" ${selected}>${sName}</option>`;
-        });
-
         return `
           <tr class="border-b hover:bg-slate-50">
             <td class="p-3 border font-mono text-xs text-slate-600 align-top">${devId}</td>
@@ -275,17 +266,6 @@
               </span>
             </td>
             <td class="p-3 border align-top max-w-xs">${htmlPesilat}</td>
-            <td class="p-3 border align-top">
-              <div class="flex flex-col gap-1.5">
-                <!-- ID elemen dropdown diselaraskan dengan unik menggunakan devId -->
-                <select id="sheetSelect_${devId}" class="border border-gray-300 rounded p-1 text-xs bg-white focus:ring-1 focus:ring-blue-500">
-                  ${dropdownOptions}
-                </select>
-                <button onclick="simpanSheetPeranti('${devId}')" class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-bold transition">
-                  💾 Tetapkan Sheet
-                </button>
-              </div>
-            </td>
             <td class="p-3 border text-xs text-gray-500 align-top">${item.lastUpdate || '-'}</td>
             <td class="p-3 border text-center align-top">
               <div class="flex flex-col gap-1.5 items-center justify-center w-full">
@@ -300,31 +280,6 @@
           </tr>
         `;
       }).join('');
-    }
-
-    async function simpanSheetPeranti(devId) {
-      const selectEl = document.getElementById(`sheetSelect_${devId}`);
-      const chosenSheet = selectEl ? selectEl.value : "";
-
-      try {
-        const res = await fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify({ 
-            action: 'updateDeviceSheet', 
-            deviceId: devId, 
-            sheetTitle: chosenSheet 
-          })
-        });
-        const result = await res.json();
-        if (result.success) {
-          alert("✅ Sheet & data peranti berjaya dikemaskini!");
-          muatLogAdmin();
-        } else {
-          alert("Gagal: " + result.message);
-        }
-      } catch(e) {
-        alert("Ralat semasa menetapkan sheet.");
-      }
     }
 
     async function hantarNotif() {
