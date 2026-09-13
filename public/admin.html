@@ -92,6 +92,7 @@
 
     window.onload = function() {
       muatLogAdmin();
+      // Dikemaskini automatik setiap 1 minit (60000 milisaat)
       setInterval(muatLogAdmin, 60000);
     };
 
@@ -259,13 +260,13 @@
         return `
           <tr class="border-b hover:bg-slate-50">
             <td class="p-3 border font-mono text-xs text-slate-600 align-top">${devId}</td>
-            <td class="p-3 border font-bold text-gray-800 align-top">${item.penguji || '-'}</td>
+            <td class="p-3 border font-bold text-gray-800 align-top">${isReset ? '-' : (item.penguji || '-')}</td>
             <td class="p-3 border align-top">
               <span class="px-2 py-1 rounded text-xs font-semibold inline-block ${isReset ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-800'}">
-                ${item.peringkat || '-'}
+                ${isReset ? 'Kosong / Reset' : (item.peringkat || '-')}
               </span>
             </td>
-            <td class="p-3 border align-top max-w-xs">${htmlPesilat}</td>
+            <td class="p-3 border align-top max-w-xs">${isReset ? '<span class="text-gray-400 italic text-xs">- Kosong -</span>' : htmlPesilat}</td>
             <td class="p-3 border text-xs text-gray-500 align-top">${item.lastUpdate || '-'}</td>
             <td class="p-3 border text-center align-top">
               <div class="flex flex-col gap-1.5 items-center justify-center w-full">
@@ -311,7 +312,7 @@
         });
         const result = await res.json();
         if (result.success) {
-          alert("✅ Arahan reset dihantar.");
+          alert("✅ Arahan reset dihantar. Maklumat penguji dan peranti akan dikosongkan.");
           muatLogAdmin();
         }
       } catch(e) {
