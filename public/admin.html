@@ -89,7 +89,7 @@
   </div>
 
   <script>
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwV_I49emxHNx0f45XVDr80dfd0ynM_c_dzvCbDl-IE8b-248W243BnTbjW5OHlujCIjw/exec"; 
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRL06Hi72S5Eyl8HKUcquV8pYaEruKIz4BppWNYZ0K3hHUcWjXVY0uowccv3-DAn47Fw/exec"; 
     let globalSheetList = [];
 
     window.onload = function() {
@@ -277,6 +277,7 @@
             <td class="p-3 border align-top max-w-xs">${htmlPesilat}</td>
             <td class="p-3 border align-top">
               <div class="flex flex-col gap-1.5">
+                <!-- ID elemen dropdown diselaraskan dengan unik menggunakan devId -->
                 <select id="sheetSelect_${devId}" class="border border-gray-300 rounded p-1 text-xs bg-white focus:ring-1 focus:ring-blue-500">
                   ${dropdownOptions}
                 </select>
@@ -382,7 +383,6 @@
       }
     }
 
-    // Fungsi Baru: Reset Semua Sesi Peranti Sekaligus
     async function resetSemuaSesi() {
       if (!confirm("⚠️ AMARAN: Pastikan anda mahu MERESET SEMUA sesi peranti yang bersambung sekarang?")) return;
       try {
@@ -402,7 +402,6 @@
       }
     }
 
-    // Fungsi Baru: Padam Semua Log Peranti Sekaligus
     async function padamSemuaLog() {
       if (!confirm("🗑️ AMARAN: Adakah anda pasti mahu MEMADAM SEMUA LOG peranti daripada sistem? Tindakan ini tidak boleh undur.")) return;
       try {
