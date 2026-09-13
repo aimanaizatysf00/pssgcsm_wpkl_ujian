@@ -77,20 +77,20 @@
       </div>
     </header>
 
-    <!-- KOTAK AMBIL ALIH SESI DARI GOOGLE SHEET -->
+    <!-- KOTAK NOTIFIKASI DRAF TERSIMPAN -->
     <div id="bannerDrafSesi" class="bg-amber-500/10 border-2 border-amber-500/40 p-4 rounded-2xl mb-6 hidden flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="space-y-1 text-center md:text-left">
         <div class="font-bold text-amber-400 flex items-center justify-center md:justify-start gap-2">
-          <span>📂</span> Sesi Ujian Aktif Dikesan dalam Sistem Sheet
+          <span>📂</span> Sesi Ujian / Pengambilalihan Peranti Dikesan
         </div>
         <div id="infoDrafSesi" class="text-xs text-slate-300 font-mono"></div>
       </div>
       <div class="flex gap-2 w-full md:w-auto">
-        <button onclick="padamSesiAktif()" class="flex-1 md:flex-initial px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow">
-          🗑️ Mula Baru
+        <button onclick="padamDrafSesi()" class="flex-1 md:flex-initial px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow">
+          🗑️ Padam / Mula Baru
         </button>
-        <button onclick="teruskanSesiDariSheet()" class="flex-1 md:flex-initial px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition shadow">
-          ▶️ Ambil Alih / Sambung
+        <button onclick="teruskanSesiDraf()" class="flex-1 md:flex-initial px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition shadow">
+          ▶️ Sambung Sesi
         </button>
       </div>
     </div>
@@ -107,17 +107,17 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Penguji</label>
-          <input type="text" id="namaPenguji" placeholder="Cth: Guru Azman" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold">
+          <input type="text" id="namaPenguji" oninput="simpanSesiTempatan()" placeholder="Cth: Guru Azman" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold">
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Peringkat / Tali Pinggang</label>
-          <select id="pilihTaliPinggang" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold bg-white">
+          <select id="pilihTaliPinggang" onchange="simpanSesiTempatan()" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold bg-white">
             <option value="">-- Pilih Tali Pinggang --</option>
           </select>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Gelanggang / Kumpulan</label>
-          <input type="text" id="kumpulanUjian" placeholder="Cth: K1 / Pusat" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold">
+          <input type="text" id="kumpulanUjian" oninput="simpanSesiTempatan()" placeholder="Cth: K1 / Pusat" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold">
         </div>
       </div>
 
@@ -174,7 +174,7 @@
 
       <div class="flex justify-end pt-4 border-t">
         <button onclick="simpanMarkah()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2 text-sm">
-          🔄 Kemaskini & Simpan Ke Sheet
+          🔄 Kemaskini
         </button>
       </div>
     </section>
@@ -195,7 +195,7 @@
     let LAST_NOTIF_ID = null;
     let LANGKAH_SEMASA = 1;
     let autoSaveTimer = null;
-    let DATA_SESI_DARI_SHEET = null;
+    let DRAF_TERSIMPAM_DATA = null;
     
     let DEVICE_ID = localStorage.getItem('SILAT_DEV_ID');
     if (!DEVICE_ID) {
@@ -206,7 +206,7 @@
     window.onload = async function() {
       document.getElementById('devIdTag').innerText = "ID: " + DEVICE_ID;
       await muatDataAwal();
-      await semakSesiAktifDariSheet();
+      semakDrafTempatan();
       setInterval(pingStatusAndNotif, 5000);
     };
 
@@ -271,6 +271,8 @@
       } else {
         hentikanAutoSave();
       }
+
+      simpanSesiTempatan();
     }
 
     function keLangkah2() {
@@ -371,15 +373,11 @@
 
       const markahSimpanan = {};
       PESILAT_TERPILIH.forEach((p) => {
-        if (p.markahArray && Array.isArray(p.markahArray)) {
-          markahSimpanan[p.ic] = p.markahArray;
-        } else {
-          const pIdxLama = document.querySelector(`[data-ic="${p.ic}"]`)?.getAttribute('data-pidx');
-          if (pIdxLama !== undefined) {
-            const inputs = document.querySelectorAll(`.inputMarkah_${pIdxLama}`);
-            if (inputs.length > 0) {
-              markahSimpanan[p.ic] = Array.from(inputs).map(i => i.value);
-            }
+        const pIdxLama = document.querySelector(`[data-ic="${p.ic}"]`)?.getAttribute('data-pidx');
+        if (pIdxLama !== undefined) {
+          const inputs = document.querySelectorAll(`.inputMarkah_${pIdxLama}`);
+          if (inputs.length > 0) {
+            markahSimpanan[p.ic] = Array.from(inputs).map(i => i.value);
           }
         }
       });
@@ -487,6 +485,7 @@
         }
       });
 
+      simpanSesiTempatan();
       hantarLogPenguji();
     }
 
@@ -520,6 +519,8 @@
           kiraJumlahPesilat(idx);
         }
       });
+
+      simpanSesiTempatan();
     }
 
     function semakDanKiraMarkah(inputEl, pIdx) {
@@ -555,6 +556,7 @@
           elem.classList.add('text-amber-600');
         }
       }
+      simpanSesiTempatan();
     }
 
     function mulaAutoSave() {
@@ -572,7 +574,7 @@
 
     async function simpanMarkahAutomatik() {
       const statusEl = document.getElementById('autoSaveStatus');
-      if (statusEl) statusEl.innerText = "🔄 Menyimpan ke Sheet...";
+      if (statusEl) statusEl.innerText = "🔄 Menyimpan...";
 
       const dataMarkah = PESILAT_TERPILIH.map((p, pIdx) => {
         const inputs = document.querySelectorAll(`.inputMarkah_${pIdx}`);
@@ -601,7 +603,7 @@
         });
 
         if (statusEl) {
-          statusEl.innerText = "✅ Tersimpan di Sheet";
+          statusEl.innerText = "✅ Tersimpan (Auto)";
           setTimeout(() => statusEl.innerText = "", 3000);
         }
       } catch (e) {
@@ -610,7 +612,7 @@
     }
 
     async function simpanMarkah() {
-      showLoading("Mengemas kini Markah ke Sheet...");
+      showLoading("Mengemas kini Markah...");
 
       const dataMarkah = PESILAT_TERPILIH.map((p, pIdx) => {
         const inputs = document.querySelectorAll(`.inputMarkah_${pIdx}`);
@@ -640,7 +642,7 @@
         const data = await res.json();
 
         if (data.success) {
-          alert("🔄 Markah berjaya dikemas kini dan disimpan terus ke Google Sheet.");
+          alert("🔄 Markah berjaya dikemas kini.");
           hantarLogPenguji();
         } else {
           alert("Gagal simpan: " + data.message);
@@ -700,7 +702,7 @@
     function togglePilihPesilatModal(ic, nama, gelanggang, isChecked) {
       if (isChecked) {
         if (!PESILAT_TERPILIH.some(p => p.ic === ic)) {
-          PESILAT_TERPILIH.push({ ic, nama, gelanggang, starred: false, markahArray: [] });
+          PESILAT_TERPILIH.push({ ic, nama, gelanggang, starred: false });
         }
       } else {
         PESILAT_TERPILIH = PESILAT_TERPILIH.filter(p => p.ic !== ic);
@@ -714,49 +716,87 @@
       
       binaBorangMarkah(kriteriaObj);
       tutupModalPesilat();
-      simpanMarkahAutomatik();
+      simpanSesiTempatan();
     }
 
-    async function semakSesiAktifDariSheet() {
+    function simpanSesiTempatan() {
+      const draftData = {
+        langkah: LANGKAH_SEMASA,
+        sheetTitle: CURRENT_SHEET_TITLE,
+        penguji: document.getElementById('namaPenguji').value,
+        tp: document.getElementById('pilihTaliPinggang').value,
+        kump: document.getElementById('kumpulanUjian').value,
+        pesilat: PESILAT_TERPILIH,
+        inputs: {}
+      };
+
+      PESILAT_TERPILIH.forEach((p, pIdx) => {
+        const inputs = document.querySelectorAll(`.inputMarkah_${pIdx}`);
+        draftData.inputs[p.ic] = Array.from(inputs).map(i => i.value);
+      });
+
+      localStorage.setItem('SILAT_DRAFT_SESSION', JSON.stringify(draftData));
+    }
+
+    function semakDrafTempatan() {
+      const saved = localStorage.getItem('SILAT_DRAFT_SESSION');
+      if (!saved) return;
+
       try {
-        const res = await fetch(`${APPS_SCRIPT_URL}?action=getActiveSession`);
-        const data = await res.json();
-        
-        if (data.success && data.activeSession && data.activeSession.pesilat && data.activeSession.pesilat.length > 0) {
-          DATA_SESI_DARI_SHEET = data.activeSession;
-          CURRENT_SHEET_TITLE = data.activeSession.sheetTitle;
+        const draft = JSON.parse(saved);
+        if (draft && (draft.penguji || draft.tp || (draft.pesilat && draft.pesilat.length > 0))) {
+          DRAF_TERSIMPAM_DATA = draft;
           
           document.getElementById('infoDrafSesi').innerHTML = `
-            <span><b>Penguji Asal:</b> ${DATA_SESI_DARI_SHEET.namaPenguji || '-'}</span> | 
-            <span><b>Tali Pinggang:</b> ${DATA_SESI_DARI_SHEET.peringkat || '-'}</span> | 
-            <span><b>Bil. Pesilat:</b> ${DATA_SESI_DARI_SHEET.pesilat.length} orang</span>
+            <span><b>Penguji:</b> ${draft.penguji || '-'}</span> | 
+            <span><b>Tali Pinggang:</b> ${draft.tp || '-'}</span> | 
+            <span><b>Bil. Pesilat:</b> ${draft.pesilat ? draft.pesilat.length : 0} orang</span>
           `;
+          
           document.getElementById('bannerDrafSesi').classList.remove('hidden');
         }
       } catch(e) {}
     }
 
-    function teruskanSesiDariSheet() {
-      if (!DATA_SESI_DARI_SHEET) return;
-      const s = DATA_SESI_DARI_SHEET;
+    function teruskanSesiDraf() {
+      if (!DRAF_TERSIMPAM_DATA) return;
+      const draft = DRAF_TERSIMPAM_DATA;
 
-      document.getElementById('namaPenguji').value = s.namaPenguji || '';
-      if (s.peringkat) document.getElementById('pilihTaliPinggang').value = s.peringkat;
-      if (s.kumpulan) document.getElementById('kumpulanUjian').value = s.kumpulan;
+      document.getElementById('namaPenguji').value = draft.penguji || '';
+      if (draft.tp) document.getElementById('pilihTaliPinggang').value = draft.tp;
+      if (draft.kump) document.getElementById('kumpulanUjian').value = draft.kump;
       
-      PESILAT_TERPILIH = s.pesilat || [];
-      document.getElementById('infoSheetBorang').innerText = "Sheet: " + CURRENT_SHEET_TITLE;
+      if (draft.pesilat) PESILAT_TERPILIH = draft.pesilat;
+      if (draft.sheetTitle) {
+        CURRENT_SHEET_TITLE = draft.sheetTitle;
+        document.getElementById('infoSheetBorang').innerText = "Sheet: " + CURRENT_SHEET_TITLE;
+      }
 
-      const kriteriaObj = DB_TETAPAN[s.peringkat] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
+      const kriteriaObj = DB_TETAPAN[draft.tp] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
       binaBorangMarkah(kriteriaObj);
       tunjukLangkah(3, false);
 
+      if (draft.inputs) {
+        PESILAT_TERPILIH.forEach((p, pIdx) => {
+          const vals = draft.inputs[p.ic] || draft.inputs[pIdx];
+          if (vals) {
+            const inputs = document.querySelectorAll(`.inputMarkah_${pIdx}`);
+            inputs.forEach((inp, i) => {
+              if (vals[i] !== undefined) inp.value = vals[i];
+            });
+            kiraJumlahPesilat(pIdx);
+          }
+        });
+      }
+
+      DRAF_TERSIMPAM_DATA = null;
       document.getElementById('bannerDrafSesi').classList.add('hidden');
       hantarLogPenguji();
     }
 
-    function padamSesiAktif() {
-      DATA_SESI_DARI_SHEET = null;
+    function padamDrafSesi() {
+      localStorage.removeItem('SILAT_DRAFT_SESSION');
+      DRAF_TERSIMPAM_DATA = null;
       document.getElementById('bannerDrafSesi').classList.add('hidden');
       document.getElementById('namaPenguji').value = '';
       document.getElementById('pilihTaliPinggang').value = '';
@@ -794,11 +834,43 @@
       };
 
       try {
-        await fetch(APPS_SCRIPT_URL, {
+        const res = await fetch(APPS_SCRIPT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         });
+        const data = await res.json();
+        
+        if (data.forceReset || data.status === 'RESET_REQUESTED') {
+          localStorage.removeItem('SILAT_DRAFT_SESSION');
+          DRAF_TERSIMPAM_DATA = null;
+          document.getElementById('bannerDrafSesi').classList.add('hidden');
+          document.getElementById('namaPenguji').value = '';
+          document.getElementById('pilihTaliPinggang').value = '';
+          document.getElementById('kumpulanUjian').value = '';
+          PESILAT_TERPILIH = [];
+          CURRENT_SHEET_TITLE = "";
+          tunjukLangkah(1, false);
+        }
+
+        if (data.draftData && (!penguji || penguji === '') && data.draftData.pesilat && data.draftData.pesilat.length > 0) {
+          const draftPindahan = {
+            langkah: 3,
+            penguji: data.draftData.namaPenguji || data.draftData.penguji || '',
+            tp: data.draftData.peringkat,
+            kump: data.draftData.kumpulan,
+            pesilat: data.draftData.pesilat,
+            sheetTitle: data.draftData.sheetTitle || CURRENT_SHEET_TITLE
+          };
+          
+          DRAF_TERSIMPAM_DATA = draftPindahan;
+          document.getElementById('infoDrafSesi').innerHTML = `
+            <span><b>Sesi Dipindahkan!</b> Penguji Asal: ${draftPindahan.penguji || '-'}</span> | 
+            <span><b>Tali Pinggang:</b> ${draftPindahan.tp || '-'}</span> | 
+            <span><b>Bil. Pesilat:</b> ${draftPindahan.pesilat.length} orang</span>
+          `;
+          document.getElementById('bannerDrafSesi').classList.remove('hidden');
+        }
       } catch (e) {}
     }
 
