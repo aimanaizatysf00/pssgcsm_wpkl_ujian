@@ -77,11 +77,11 @@
       </div>
     </header>
 
-    <!-- KOTAK NOTIFIKASI DRAF TERSIMPAN -->
+    <!-- KOTAK NOTIFIKASI DRAF TERSIMPAN / AMBIL ALIH SHEET -->
     <div id="bannerDrafSesi" class="bg-amber-500/10 border-2 border-amber-500/40 p-4 rounded-2xl mb-6 hidden flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="space-y-1 text-center md:text-left">
         <div class="font-bold text-amber-400 flex items-center justify-center md:justify-start gap-2">
-          <span>📂</span> Sesi Ujian / Pengambilalihan Peranti Dikesan
+          <span>📂</span> Sesi Ujian / Pengambilalihan Sheet Dikesan
         </div>
         <div id="infoDrafSesi" class="text-xs text-slate-300 font-mono"></div>
       </div>
@@ -90,7 +90,7 @@
           🗑️ Padam / Mula Baru
         </button>
         <button onclick="teruskanSesiDraf()" class="flex-1 md:flex-initial px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition shadow">
-          ▶️ Sambung Sesi
+          ▶️ Muat Data Sheet / Sambung
         </button>
       </div>
     </div>
@@ -380,6 +380,10 @@
             markahSimpanan[p.ic] = Array.from(inputs).map(i => i.value);
           }
         }
+        // Jika ada markah sedia ada dari muatan sheet/draf
+        else if (p.markahArray) {
+          markahSimpanan[p.ic] = p.markahArray;
+        }
       });
 
       container.innerHTML = PESILAT_TERPILIH.map((p, pIdx) => {
@@ -479,7 +483,7 @@
         if (markahSimpanan[p.ic]) {
           const inputs = document.querySelectorAll(`.inputMarkah_${idx}`);
           inputs.forEach((inp, i) => {
-            if (markahSimpanan[p.ic][i] !== undefined) inp.value = markahSimpanan[p.ic][i];
+            if (markahSimpanan[p.ic][i] !== undefined) inputs[i].value = markahSimpanan[p.ic][i];
           });
           kiraJumlahPesilat(idx);
         }
@@ -514,7 +518,7 @@
         if (markahSimpanan[p.ic]) {
           const inputs = document.querySelectorAll(`.inputMarkah_${idx}`);
           inputs.forEach((inp, i) => {
-            if (markahSimpanan[p.ic][i] !== undefined) inp.value = markahSimpanan[p.ic][i];
+            if (markahSimpanan[p.ic][i] !== undefined) inputs[i].value = markahSimpanan[p.ic][i];
           });
           kiraJumlahPesilat(idx);
         }
@@ -764,7 +768,6 @@
 
       document.getElementById('namaPenguji').value = draft.penguji || '';
       
-      // AUTO SET TALI PINGGANG SEBENTAR (SEBATI NAMA DARI PERANTI A)
       if (draft.tp) {
         const selectTp = document.getElementById('pilihTaliPinggang');
         selectTp.value = draft.tp;
@@ -828,11 +831,15 @@
       const pesilatPayload = PESILAT_TERPILIH.map((p, pIdx) => {
         const jumlahEl = document.getElementById(`jumlahMarkah_${pIdx}`);
         const currentJumlah = jumlahEl ? Number(jumlahEl.innerText) || 0 : (p.jumlah || 0);
+        const inputs = document.querySelectorAll(`.inputMarkah_${pIdx}`);
+        const markahArr = inputs.length > 0 ? Array.from(inputs).map(i => Number(i.value) || 0) : (p.markahArray || []);
+        
         return {
           nama: p.nama,
           ic: p.ic,
           gelanggang: p.gelanggang,
           starred: p.starred || false,
+          markahArray: markahArr,
           jumlah: currentJumlah
         };
       });
@@ -867,7 +874,7 @@
           tunjukLangkah(1, false);
         }
 
-        if (data.draftData && (!penguji || penguji === '') && data.draftData.pesilat && data.draftData.pesilat.length > 0) {
+        if (data.draftData && data.draftData.pesilat && data.draftData.pesilat.length > 0) {
           const draftPindahan = {
             langkah: 3,
             penguji: data.draftData.namaPenguji || data.draftData.penguji || '',
@@ -879,8 +886,7 @@
           
           DRAF_TERSIMPAM_DATA = draftPindahan;
           document.getElementById('infoDrafSesi').innerHTML = `
-            <span><b>Sesi Dipindahkan!</b> Penguji Asal: ${draftPindahan.penguji || '-'}</span> | 
-            <span><b>Tali Pinggang:</b> ${draftPindahan.tp || '-'}</span> | 
+            <span><b>Sheet Dipilih Admin!</b> Peringkat: ${draftPindahan.tp || '-'}</span> | 
             <span><b>Bil. Pesilat:</b> ${draftPindahan.pesilat.length} orang</span>
           `;
           document.getElementById('bannerDrafSesi').classList.remove('hidden');
