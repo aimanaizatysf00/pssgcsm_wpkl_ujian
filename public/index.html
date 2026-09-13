@@ -368,8 +368,8 @@
 
     function binaBorangMarkah(kriteriaObj) {
       const container = document.getElementById('papanPenilaianContainer');
-      const kriteria = kriteriaObj.kriteria || [];
-      const maks = kriteriaObj.markahMaks || [];
+      const kriteria = kriteriaObj.kriteria || ["Penilaian Umum"];
+      const maks = kriteriaObj.markahMaks || [100];
 
       const markahSimpanan = {};
       PESILAT_TERPILIH.forEach((p) => {
