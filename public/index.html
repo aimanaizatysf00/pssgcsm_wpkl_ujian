@@ -762,54 +762,69 @@
       } catch(e) {}
     }
 
-    function teruskanSesiDraf() {
-      if (!DRAF_TERSIMPAM_DATA) return;
-      const draft = DRAF_TERSIMPAM_DATA;
-
-      document.getElementById('namaPenguji').value = draft.penguji || '';
-      
-      if (draft.tp) {
-        const selectTp = document.getElementById('pilihTaliPinggang');
-        selectTp.value = draft.tp;
-        
-        if (selectTp.value !== draft.tp) {
-          const opt = document.createElement('option');
-          opt.value = draft.tp;
-          opt.textContent = draft.tp;
-          selectTp.appendChild(opt);
-          selectTp.value = draft.tp;
+      function teruskanSesiDraf() {
+    if (!DRAF_TERSIMPAM_DATA) return;
+    const draft = DRAF_TERSIMPAM_DATA;
+  
+    document.getElementById('namaPenguji').value = draft.penguji || '';
+    
+    // 1. Ambil dan tetapkan peringkat (Tali Pinggang) secara automatik daripada draf/sheet
+    let detectedTp = draft.tp || "";
+    if (!detectedTp && draft.sheetTitle) {
+      const sheetUpper = draft.sheetTitle.toUpperCase();
+      for (let key of Object.keys(DB_TETAPAN)) {
+        if (sheetUpper.includes(key.toUpperCase())) {
+          detectedTp = key;
+          break;
         }
       }
-
-      if (draft.kump) document.getElementById('kumpulanUjian').value = draft.kump;
-      
-      if (draft.pesilat) PESILAT_TERPILIH = draft.pesilat;
-      if (draft.sheetTitle) {
-        CURRENT_SHEET_TITLE = draft.sheetTitle;
-        document.getElementById('infoSheetBorang').innerText = "Sheet: " + CURRENT_SHEET_TITLE;
-      }
-
-      const kriteriaObj = DB_TETAPAN[draft.tp] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
-      binaBorangMarkah(kriteriaObj);
-      tunjukLangkah(3, false);
-
-      if (draft.inputs) {
-        PESILAT_TERPILIH.forEach((p, pIdx) => {
-          const vals = draft.inputs[p.ic] || draft.inputs[pIdx];
-          if (vals) {
-            const inputs = document.querySelectorAll(`.inputMarkah_${pIdx}`);
-            inputs.forEach((inp, i) => {
-              if (vals[i] !== undefined) inp.value = vals[i];
-            });
-            kiraJumlahPesilat(pIdx);
-          }
-        });
-      }
-
-      DRAF_TERSIMPAM_DATA = null;
-      document.getElementById('bannerDrafSesi').classList.add('hidden');
-      hantarLogPenguji();
     }
+  
+    const selectTp = document.getElementById('pilihTaliPinggang');
+    if (detectedTp) {
+      selectTp.value = detectedTp;
+      if (selectTp.value !== detectedTp) {
+        const opt = document.createElement('option');
+        opt.value = detectedTp;
+        opt.textContent = detectedTp;
+        selectTp.appendChild(opt);
+        selectTp.value = detectedTp;
+      }
+    }
+  
+    if (draft.kump) document.getElementById('kumpulanUjian').value = draft.kump;
+    if (draft.pesilat) PESILAT_TERPILIH = draft.pesilat;
+    
+    if (draft.sheetTitle) {
+      CURRENT_SHEET_TITLE = draft.sheetTitle;
+      document.getElementById('infoSheetBorang').innerText = "Sheet: " + CURRENT_SHEET_TITLE;
+    }
+  
+    // 2. Tarik tetapan kriteria sebenar daripada DB_TETAPAN berdasarkan tali pinggang yang dikesan
+    const kriteriaObj = DB_TETAPAN[selectTp.value] || DB_TETAPAN[draft.tp] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
+    
+    // 3. Bina semula borang markah terperinci di Peranti B
+    binaBorangMarkah(kriteriaObj);
+    tunjukLangkah(3, false);
+  
+    // 4. Masukkan semula markah terperinci pesilat yang telah diisi
+    if (draft.inputs || draft.pesilat) {
+      PESILAT_TERPILIH.forEach((p, pIdx) => {
+        const vals = (p.markahArray && p.markahArray.length > 0) ? p.markahArray : (draft.inputs[p.ic] || draft.inputs[pIdx]);
+        if (vals) {
+          const inputs = document.querySelectorAll(`.inputMarkah_${pIdx}`);
+          inputs.forEach((inp, i) => {
+            if (vals[i] !== undefined) inp.value = vals[i];
+          });
+          kiraJumlahPesilat(pIdx);
+        }
+      });
+    }
+  
+    DRAF_TERSIMPAM_DATA = null;
+    document.getElementById('bannerDrafSesi').classList.add('hidden');
+    hantarLogPenguji();
+  }
 
     function padamDrafSesi() {
       localStorage.removeItem('SILAT_DRAFT_SESSION');
