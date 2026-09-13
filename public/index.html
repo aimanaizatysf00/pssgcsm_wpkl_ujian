@@ -87,12 +87,12 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Penguji</label>
-            <select id="namaPenguji" onchange="simpanSesiTempatan()" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold bg-white">
-            <option value="">-- Pilih Nama Penguji --</option> <!-- Senarai nama penguji akan dimasukkan secara automatik di sini nanti -->
-            </select>
-          </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Penguji</label>
+          <select id="namaPenguji" onchange="simpanSesiTempatan()" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold bg-white">
+            <option value="">-- Pilih Nama Penguji --</option>
+          </select>
+        </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Peringkat / Tali Pinggang</label>
           <select id="pilihTaliPinggang" onchange="simpanSesiTempatan()" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold bg-white">
@@ -174,6 +174,7 @@
 
     let DB_PESILAT = [];
     let DB_TETAPAN = {};
+    let DB_PENGUJI = [];
     let PESILAT_TERPILIH = [];
     let CURRENT_SHEET_TITLE = "";
     let LAST_NOTIF_ID = null;
@@ -217,7 +218,10 @@
         if (data.success) {
           DB_PESILAT = data.pesilat || [];
           DB_TETAPAN = data.tetapan || {};
+          DB_PENGUJI = data.pengujiList || [];
+          
           isiDropdownTaliPinggang();
+          isiDropdownPenguji();
         } else {
           alert("Gagal muat data: " + data.message);
         }
@@ -235,6 +239,17 @@
         const opt = document.createElement('option');
         opt.value = tp;
         opt.textContent = tp;
+        select.appendChild(opt);
+      });
+    }
+
+    function isiDropdownPenguji() {
+      const select = document.getElementById('namaPenguji');
+      select.innerHTML = '<option value="">-- Pilih Nama Penguji --</option>';
+      DB_PENGUJI.forEach(nama => {
+        const opt = document.createElement('option');
+        opt.value = nama;
+        opt.textContent = nama;
         select.appendChild(opt);
       });
     }
@@ -263,7 +278,7 @@
       const tp = document.getElementById('pilihTaliPinggang').value;
 
       if (!penguji || !tp) {
-        return alert("Sila lengkapkan Nama Penguji dan Peringkat Tali Pinggang!");
+        return alert("Sila pilih Nama Penguji dan Peringkat Tali Pinggang!");
       }
 
       document.getElementById('labelTaliPinggangDipilih').innerText = tp;
@@ -314,7 +329,7 @@
       const kump = document.getElementById('kumpulanUjian').value.trim();
       const kriteriaObj = DB_TETAPAN[tp] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
 
-      showLoading("Mencipta Sheet Ujian...");
+      showLoading("Menyemak / Mencipta Sheet Ujian...");
 
       try {
         const payload = {
@@ -336,14 +351,19 @@
         if (data.success) {
           CURRENT_SHEET_TITLE = data.sheetTitle;
           document.getElementById('infoSheetBorang').innerText = "Sheet: " + CURRENT_SHEET_TITLE;
+          
+          if (data.pesilat && data.pesilat.length > 0) {
+            PESILAT_TERPILIH = data.pesilat;
+          }
+
           binaBorangMarkah(kriteriaObj);
           tunjukLangkah(3);
           hantarLogPenguji();
         } else {
-          alert("Gagal mencipta sheet: " + data.message);
+          alert("Gagal mencipta/akses sheet: " + data.message);
         }
       } catch (e) {
-        alert("Ralat semasa mencipta borang ujian: " + e.toString());
+        alert("Ralat semasa mengakses borang ujian: " + e.toString());
       } finally {
         hideLoading();
       }
@@ -356,14 +376,7 @@
 
       const markahSimpanan = {};
       PESILAT_TERPILIH.forEach((p) => {
-        const pIdxLama = document.querySelector(`[data-ic="${p.ic}"]`)?.getAttribute('data-pidx');
-        if (pIdxLama !== undefined) {
-          const inputs = document.querySelectorAll(`.inputMarkah_${pIdxLama}`);
-          if (inputs.length > 0) {
-            markahSimpanan[p.ic] = Array.from(inputs).map(i => i.value);
-          }
-        }
-        else if (p.markahArray) {
+        if (p.markahArray && p.markahArray.length > 0) {
           markahSimpanan[p.ic] = p.markahArray;
         }
       });
@@ -439,14 +452,7 @@
     }
 
     function toggleStarPesilat(pIdx) {
-      const isCurrentlyStarred = PESILAT_TERPILIH[pIdx].starred;
-      
-      if (!isCurrentlyStarred) {
-        PESILAT_TERPILIH.forEach(p => p.starred = false);
-        PESILAT_TERPILIH[pIdx].starred = true;
-      } else {
-        PESILAT_TERPILIH[pIdx].starred = false;
-      }
+      PESILAT_TERPILIH[pIdx].starred = !PESILAT_TERPILIH[pIdx].starred;
 
       const tp = document.getElementById('pilihTaliPinggang').value;
       const kriteriaObj = DB_TETAPAN[tp] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
@@ -737,7 +743,17 @@
     }
 
     function muatTerusSesiDraf(draft) {
-      document.getElementById('namaPenguji').value = draft.penguji || '';
+      if (draft.penguji) {
+        const selectPenguji = document.getElementById('namaPenguji');
+        selectPenguji.value = draft.penguji;
+        if (selectPenguji.value !== draft.penguji) {
+          const opt = document.createElement('option');
+          opt.value = draft.penguji;
+          opt.textContent = draft.penguji;
+          selectPenguji.appendChild(opt);
+          selectPenguji.value = draft.penguji;
+        }
+      }
       
       let detectedTp = draft.tp || "";
       if (!detectedTp && draft.sheetTitle) {
@@ -833,27 +849,22 @@
         });
         const data = await res.json();
         
-        // JIKA ADMIN TEKAN RESET / PADAM SEMUA (MENGESAN FORCE RESET DARI BACKEND)
         if (data.forceReset || data.status === 'RESET_REQUESTED' || data.reset === true) {
           localStorage.removeItem('SILAT_DRAFT_SESSION');
           
-          // Kosongkan pembolehubah global
           PESILAT_TERPILIH = [];
           CURRENT_SHEET_TITLE = "";
           
-          // Kosongkan input form secara fizikal
           document.getElementById('namaPenguji').value = '';
           document.getElementById('pilihTaliPinggang').value = '';
           document.getElementById('kumpulanUjian').value = '';
           
-          // Kosongkan papan markah & senarai pesilat
           const papanContainer = document.getElementById('papanPenilaianContainer');
           if (papanContainer) papanContainer.innerHTML = '';
           
           const senaraiContainer = document.getElementById('senaraiPesilatContainer');
           if (senaraiContainer) senaraiContainer.innerHTML = '';
           
-          // Paksa balik ke Langkah 1 (Halaman Utama)
           tunjukLangkah(1, false);
           return;
         }
