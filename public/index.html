@@ -89,7 +89,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Penguji</label>
-          <input type="text" id="namaPenguji" oninput="simpanSesiTempatan()" placeholder="Cth: Guru Azman" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold">
+          <input type="text" id="namaPenguji" oninput="simpanSesiTempatan()" placeholder="Contoh: Cikgu Aiman" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold">
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Peringkat / Tali Pinggang</label>
@@ -420,10 +420,11 @@
                        data-pidx="${pIdx}" 
                        data-kidx="${kIdx}"
                        data-max="${maks[kIdx] || 100}"
-                       value="${(p.markahArray && p.markahArray[kIdx] !== undefined && p.markahArray[kIdx] !== "" && p.markahArray[kIdx] !== 0) ? p.markahArray[kIdx] : ''}"
+                       value="${(p.markahArray && p.markahArray[kIdx] !== undefined && p.markahArray[kIdx] !== "" && Number(p.markahArray[kIdx]) !== 0) ? p.markahArray[kIdx] : ''}"
                        onfocus="if(this.value=='0')this.value=''"
                        oninput="semakDanKiraMarkah(this, ${pIdx})"
-                       class="inputMarkah_${pIdx} w-full border rounded p-1 text-center font-bold text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50 focus:bg-white text-slate-800 placeholder:text-slate-300 placeholder:font-normal" 
+                       style="color: #1e293b;"
+                       class="inputMarkah_${pIdx} w-full border rounded p-1 text-center font-bold text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50 focus:bg-white placeholder-slate-300" 
                        placeholder="0">
               </div>
             `).join('')}
