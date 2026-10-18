@@ -448,7 +448,14 @@
     }
 
     function toggleStarPesilat(pIdx) {
-      PESILAT_TERPILIH[pIdx].starred = !PESILAT_TERPILIH[pIdx].starred;
+      const isCurrentlyStarred = PESILAT_TERPILIH[pIdx].starred;
+      
+      // Padam star untuk SEMUA pesilat terlebih dahulu supaya hanya 1 sahaja boleh star
+      PESILAT_TERPILIH.forEach(p => p.starred = false);
+
+      if (!isCurrentlyStarred) {
+        PESILAT_TERPILIH[pIdx].starred = true;
+      }
 
       const tp = document.getElementById('pilihTaliPinggang').value;
       const kriteriaObj = DB_TETAPAN[tp] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
