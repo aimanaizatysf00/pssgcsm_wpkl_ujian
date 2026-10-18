@@ -420,6 +420,8 @@
                        data-pidx="${pIdx}" 
                        data-kidx="${kIdx}"
                        data-max="${maks[kIdx] || 100}"
+                       value=""
+                       onfocus="if(this.value=='0')this.value=''"
                        oninput="semakDanKiraMarkah(this, ${pIdx})"
                        class="inputMarkah_${pIdx} w-full border rounded p-1 text-center font-bold text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-slate-50 focus:bg-white" 
                        placeholder="0">
