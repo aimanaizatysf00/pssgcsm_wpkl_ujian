@@ -89,9 +89,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Penguji</label>
-          <select id="namaPenguji" onchange="simpanSesiTempatan()" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold bg-white">
-            <option value="">-- Pilih Nama Penguji --</option>
-          </select>
+          <input type="text" id="namaPenguji" oninput="simpanSesiTempatan()" placeholder="Cth: Guru Azman" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold">
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Peringkat / Tali Pinggang</label>
@@ -101,7 +99,19 @@
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Gelanggang / Kumpulan</label>
-          <input type="text" id="kumpulanUjian" oninput="simpanSesiTempatan()" placeholder="Cth: K1 / Pusat" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold">
+          <select id="kumpulanUjian" onchange="simpanSesiTempatan()" class="w-full p-2.5 border rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm font-semibold bg-white">
+            <option value="">-- Pilih Kumpulan --</option>
+            <option value="1">Kumpulan 1</option>
+            <option value="2">Kumpulan 2</option>
+            <option value="3">Kumpulan 3</option>
+            <option value="4">Kumpulan 4</option>
+            <option value="5">Kumpulan 5</option>
+            <option value="6">Kumpulan 6</option>
+            <option value="7">Kumpulan 7</option>
+            <option value="8">Kumpulan 8</option>
+            <option value="9">Kumpulan 9</option>
+            <option value="10">Kumpulan 10</option>
+          </select>
         </div>
       </div>
 
@@ -174,7 +184,6 @@
 
     let DB_PESILAT = [];
     let DB_TETAPAN = {};
-    let DB_PENGUJI = [];
     let PESILAT_TERPILIH = [];
     let CURRENT_SHEET_TITLE = "";
     let LAST_NOTIF_ID = null;
@@ -218,10 +227,7 @@
         if (data.success) {
           DB_PESILAT = data.pesilat || [];
           DB_TETAPAN = data.tetapan || {};
-          DB_PENGUJI = data.pengujiList || [];
-          
           isiDropdownTaliPinggang();
-          isiDropdownPenguji();
         } else {
           alert("Gagal muat data: " + data.message);
         }
@@ -239,17 +245,6 @@
         const opt = document.createElement('option');
         opt.value = tp;
         opt.textContent = tp;
-        select.appendChild(opt);
-      });
-    }
-
-    function isiDropdownPenguji() {
-      const select = document.getElementById('namaPenguji');
-      select.innerHTML = '<option value="">-- Pilih Nama Penguji --</option>';
-      DB_PENGUJI.forEach(nama => {
-        const opt = document.createElement('option');
-        opt.value = nama;
-        opt.textContent = nama;
         select.appendChild(opt);
       });
     }
@@ -276,12 +271,13 @@
     function keLangkah2() {
       const penguji = document.getElementById('namaPenguji').value.trim();
       const tp = document.getElementById('pilihTaliPinggang').value;
+      const kump = document.getElementById('kumpulanUjian').value;
 
-      if (!penguji || !tp) {
-        return alert("Sila pilih Nama Penguji dan Peringkat Tali Pinggang!");
+      if (!penguji || !tp || !kump) {
+        return alert("Sila lengkapkan Nama Penguji, Peringkat Tali Pinggang, dan Kumpulan!");
       }
 
-      document.getElementById('labelTaliPinggangDipilih').innerText = tp;
+      document.getElementById('labelTaliPinggangDipilih').innerText = tp + " (Kumpulan " + kump + ")";
       
       const tapisPesilat = DB_PESILAT.filter(p => p.peringkat.toLowerCase() === tp.toLowerCase());
       const container = document.getElementById('senaraiPesilatContainer');
@@ -326,7 +322,7 @@
 
       const penguji = document.getElementById('namaPenguji').value.trim();
       const tp = document.getElementById('pilihTaliPinggang').value;
-      const kump = document.getElementById('kumpulanUjian').value.trim();
+      const kump = document.getElementById('kumpulanUjian').value;
       const kriteriaObj = DB_TETAPAN[tp] || { kriteria: ["Penilaian Umum"], markahMaks: [100] };
 
       showLoading("Menyemak / Mencipta Sheet Ujian...");
@@ -744,15 +740,7 @@
 
     function muatTerusSesiDraf(draft) {
       if (draft.penguji) {
-        const selectPenguji = document.getElementById('namaPenguji');
-        selectPenguji.value = draft.penguji;
-        if (selectPenguji.value !== draft.penguji) {
-          const opt = document.createElement('option');
-          opt.value = draft.penguji;
-          opt.textContent = draft.penguji;
-          selectPenguji.appendChild(opt);
-          selectPenguji.value = draft.penguji;
-        }
+        document.getElementById('namaPenguji').value = draft.penguji;
       }
       
       let detectedTp = draft.tp || "";
